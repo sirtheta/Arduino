@@ -52,16 +52,24 @@ void loop()
   delay(1000);
 
   digitalWrite(led1, LOW);
-  delay(1000);
+  delay(50);
 }
 
 // Task no.2: blink LED with 0.1 second delay.
 void loop2()
 {
   digitalWrite(led2, HIGH);
-  delay(10);
+  delay(100);
   digitalWrite(led2, LOW);
-  delay(10);
+  delay(100);
+}
+
+void loop4()
+{
+  digitalWrite(led3, HIGH);
+  delay(2000);
+  digitalWrite(led3, LOW);
+  delay(100);
 }
 
 // Task no.3: accept commands from Serial port
@@ -103,4 +111,5 @@ void setup()
   // "loop" is always started by default.
   Scheduler.startLoop(loop2);
   Scheduler.startLoop(loop3);
+  Scheduler.startLoop(loop4);
 }
