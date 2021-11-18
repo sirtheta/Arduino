@@ -53,6 +53,7 @@ void loop()
 
   digitalWrite(led1, LOW);
   delay(1000);
+  Serial.println("Led turned off!");
 }
 
 // Task no.2: blink LED with 0.1 second delay.
