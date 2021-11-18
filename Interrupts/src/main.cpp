@@ -2,13 +2,12 @@
 
 void setup()
 {
-  pinMode(LED_BUILTIN, OUTPUT);
-  
+  pinMode(LED_BUILTIN, OUTPUT);  
 }
 
 void loop()
 {
-  float sensorValue = analogRead(A0) * (5.0 / 1023.0);https://github.com/sirtheta/Arduino.git
+  float sensorValue = analogRead(A0) * (5.0 / 1023.0);
   float frequency = 1 / (1.875 * sensorValue + 0.8125) * 1000;
   if (sensorValue < 0.1)
   {
