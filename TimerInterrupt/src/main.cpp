@@ -20,7 +20,7 @@ void setup()
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), toggle_blinking, FALLING);
-  ITimer.attachInterruptInterval(TIMER_INTERVAL_MS * 1000, TimerHandler0);
+  ITimer.attachInterruptInterval(TIMER_INTERVAL_MS * 1000, TimerHandler);
 
 }
 
