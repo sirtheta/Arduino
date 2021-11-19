@@ -1,10 +1,11 @@
 #include <Arduino.h>
 #include "NRF52_MBED_TimerInterrupt.h"
+
 #define TIMER_INTERVAL_MS 30
 #define SENSOR_VALUE 4.89
 
 void toggle_blinking();
-void timerHandler(void); 
+void timerHandler(); 
 void blink();
 void getSensorValue();
 void debugRoutine();
@@ -37,6 +38,8 @@ void loop()
 
 void getSensorValue()
 {
+  //reading value from poti
+  //float sensorValue = analogRead(A0) * (5.0 / 1023.0);
   sensorValue = SENSOR_VALUE;
   frequency = 1 / (1.875 * sensorValue + 0.8125) * 1000;
 }
@@ -84,7 +87,7 @@ void toggle_blinking()
   ITimer.attachInterruptInterval(TIMER_INTERVAL_MS * 1000, timerHandler);
 }
 
-void timerHandler(void)
+void timerHandler()
 {  
   if (buttonPressed)
   {
