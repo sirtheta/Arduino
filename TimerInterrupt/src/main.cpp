@@ -1,30 +1,47 @@
 #include <Arduino.h>
 #include "NRF52_MBED_TimerInterrupt.h"
+#include "blink.h"
+#include "defines.h"
 
-#define TIMER_INTERVAL_MS 30
-#define SENSOR_VALUE 4.89
-
+//define methods
 void toggle_blinking();
-void timerHandler(); 
-void blink();
+void timerHandler();
+void debounce();
+void blink(float sensorValue, float frequency);
+void blinkRGB(float interval1, float interval2, float interval3);
 void getSensorValue();
-void debugRoutine();
 
 const uint8_t BUTTON_PIN = 3;
-bool buttonPressed = false;
-bool bBlink = false;
-int counter = 0;
+
+volatile bool buttonPressed = false;
+volatile bool bBlink = false;
+volatile int counter = 0;
+
 float sensorValue;
 float frequency;
+float interval1 = 0;
+float interval2 = 0;
+float interval3 = 0;
 
 // Init NRF52 timer NRF_TIMER3
 NRF52_MBED_Timer ITimer(NRF_TIMER_3);
 
 void setup()
 {
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+  pinMode(led3, OUTPUT);
+
   pinMode(LED_BUILTIN, OUTPUT);
+
+  //Switch off RGB LED's, why are they inverted?!
+  digitalWrite(led1, HIGH);
+  digitalWrite(led2, HIGH);
+  digitalWrite(led3, HIGH);
+
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), toggle_blinking, FALLING);
+  ITimer.attachInterruptInterval(DEBOUNCE_INTERVAL * 1000, timerHandler);
 }
 
 void loop()
@@ -32,8 +49,24 @@ void loop()
   getSensorValue();
   if (bBlink)
   {
-    blink();
+    blink(sensorValue, frequency);
   }
+  else
+  {
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+  blinkRGB(interval1, interval2, interval3);
+}
+
+//this method gets called if one presses the button. See setup--> attachInterrupt
+void toggle_blinking()
+{
+  buttonPressed = true;
+}
+
+void timerHandler()
+{
+  debounce();
 }
 
 void getSensorValue()
@@ -42,62 +75,21 @@ void getSensorValue()
   //float sensorValue = analogRead(A0) * (5.0 / 1023.0);
   sensorValue = SENSOR_VALUE;
   frequency = 1 / (1.875 * sensorValue + 0.8125) * 1000;
-}
-  
-void blink()
-{
-  if (sensorValue < 0.1)
-  {
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(1000);
-    Serial.print("Led is always off!");
-  }
-  else if (sensorValue > 4.9)
-  {
-    digitalWrite(LED_BUILTIN, HIGH);
-    Serial.print("Led is always on!");
-    delay(1000);
-  }
-  else
-  {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(frequency);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(frequency);
-  }
-  //debugRoutine();
+  interval1 = frequency * 4;
+  interval2 = frequency * 2;
+  interval3 = frequency * 1.5;
 }
 
-void debugRoutine()
+void debounce()
 {
-  Serial.print("Frequency: ");
-  Serial.print(frequency);
-  Serial.println(" ");
-  Serial.print("SensorValue: ");
-  Serial.print(sensorValue);
-  Serial.println(" ");
-  Serial.println("counter: ");
-  Serial.println(counter);
-}
-
-//this method gets called if one presses the button. See setup--> attachInterrupt
-void toggle_blinking()
-{
-  buttonPressed = true;
-  ITimer.attachInterruptInterval(TIMER_INTERVAL_MS * 1000, timerHandler);
-}
-
-void timerHandler()
-{  
   if (buttonPressed)
   {
-    counter += 1;
-  }    
-  if (counter > 5)
-  {
-    counter = 0;
-    buttonPressed = false;
-    bBlink = !bBlink;
-    ITimer.detachInterrupt();
-  }    
+    counter++;
+    if (counter > 5)
+    {
+      counter = 0;
+      buttonPressed = false;
+      bBlink = !bBlink;
+    }
+  }
 }
