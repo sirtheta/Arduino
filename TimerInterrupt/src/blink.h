@@ -19,7 +19,7 @@ void blink(float sensorValue, float frequency)
   {
     digitalWrite(LED_BUILTIN, LOW);
   }
-  else if (sensorValue > 4.9)
+  else if (sensorValue > 100)
   {
     digitalWrite(LED_BUILTIN, HIGH);
   }
