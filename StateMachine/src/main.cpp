@@ -3,113 +3,165 @@
 #include "NRF52_MBED_TimerInterrupt.h"
 
 #define INTERVAL 5000
+#define CLOSING_OPENING_TIME 5000
 #define BLINK_INTERVAL_ORANGE 500
+#define DEBOUNCE_INTERVAL 40
 
-// Init NRF52 timer NRF_TIMER3
-NRF52_MBED_Timer ITimer(NRF_TIMER_3);
+const uint8_t BUTTON_PIN = 4;
+bool buttonPressed = false;
+bool bTimerRunning = false;
+bool bDetach = false;
+int iCounter = 0;
 
+NRF52_MBED_Timer ITimerDebounce(NRF_TIMER_3);
+NRF52_MBED_Timer ITimer2(NRF_TIMER_4);
 
 enum State
 {
-  Open,
-  Closing,
-  Closed,
-  Opening
+  OPEN,
+  CLOSING,
+  CLOSED,
+  OPENING
 };
 
 struct Input
 {
   bool barrierOpen;
   bool barrierClosed;
-  bool trainpassed;
+  bool trainPassed;
   bool trainApproaching;
 };
 
-State currentState = Open;
+State currentState = OPEN;
 Input input = Input {false, false,false,false};
 
-void Open_f()
-{
-  blinkOrange(50);
-  if (input.trainApproaching)
-  {
-    currentState = Closing;
-  }
-}
-
-void Closing_f()
-{
-  blinkOrange(100);
-  if (input.barrierClosed)
-  {
-    currentState = Closed;
-  }
-}
-
-void Closed_f()
-{
-  blinkOrange(300);
-  if (input.trainpassed)
-  {
-    currentState = Opening;
-  }
-}
-
-void Opening_f()
-{
-  blinkOrange(1000);
-  if (input.barrierOpen)
-  {
-    currentState = Open;
-  }
-}
-
-void timerHandler() 
+void switchState()
 {
   switch (currentState)
   {
-  case Open:
+  case OPEN:
       input = Input{false,false,false,true};
     break;
-  case Closing:
-    input = Input{false, true, false, false};
+  case CLOSING:
+      input = Input{false, true, false, false};
     break;
-  case Closed:
-    input = Input{false, false, true, false};
+  case CLOSED:
+      input = Input{false, false, true, false};
     break;
-  case Opening:
-    input = Input{true, false, false, false};
+  case OPENING:
+      input = Input{true, false, false, false};
     break;
 
   default:
     break;
   }
+  bDetach = true;
+}
+/******************************************/
+/* used when doing the blinking with timer*/
+/******************************************/
+
+// void timerHandler() 
+// {
+//   switchState();
+// }
+/******************************************/
+
+//Debouncemethod for the button
+void debounce()
+{
+  if (buttonPressed)
+  {
+    iCounter++;
+    if (iCounter > 5)
+    {
+      iCounter = 0;
+      switchState();
+      ITimerDebounce.detachInterrupt();
+      buttonPressed = false;
+    }
+  }
 }
 
+void buttonInterrupt()
+{
+  if (!bTimerRunning)
+  {
+    buttonPressed = true;
+    ITimerDebounce.attachInterruptInterval(DEBOUNCE_INTERVAL * 1000, debounce);    
+  }  
+}
+
+void openingClosing(State state)
+{
+  if (!bTimerRunning)
+  {
+    ITimer2.attachInterruptInterval(CLOSING_OPENING_TIME * 1000, switchState);
+    //switch off OrangeLed
+    digitalWrite(LED_BUILTIN, LOW);
+    bTimerRunning = true;
+  } 
+  if (state == CLOSING)
+  {
+    blinkR(40);
+  }
+  else if (state == OPENING)
+  {
+    blinkG(40);
+  }  
+}
+
+/********************************************************************************************/
+/* Setup and Loop Section                                                                    */
+/********************************************************************************************/
 void setup() 
 {
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED_BUILTIN, OUTPUT);
-  ITimer.attachInterruptInterval(INTERVAL * 1000, timerHandler);
-  // put your setup code here, to run once:
+  //ITimerDebounce.attachInterruptInterval(INTERVAL * 1000, timerHandler);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonInterrupt, FALLING);
 }
 
 void loop() 
 {
-  Serial.println(currentState);
-
-  switch (currentState)
+  if (bDetach)
   {
-    case Open:
-      Open_f();
+    ITimer2.detachInterrupt();
+    bTimerRunning = false;
+    bDetach = false;
+    digitalWrite(LEDR, HIGH);
+    digitalWrite(LEDG, HIGH);
+  }
+  
+  switch (currentState)
+    {
+    case OPEN:
+      blinkOrange(50);
+      if (input.trainApproaching)
+      {
+        currentState = CLOSING;
+      }
       break;
-    case Closing:
-      Closing_f();
+    case CLOSING:
+      openingClosing(CLOSING);
+      if (input.barrierClosed)
+      {
+        currentState = CLOSED;
+      }
       break;
-    case Closed:
-      Closed_f();
+    case CLOSED:
+      blinkOrange(300);
+      if (input.trainPassed)
+      {
+        currentState = OPENING;
+      }
       break;
-    case Opening:
-      Opening_f();
+    case OPENING:
+      openingClosing(OPENING);
+      if (input.barrierOpen)
+      {
+        currentState = OPEN;
+      }
       break;
 
     default:
